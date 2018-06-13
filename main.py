@@ -3,6 +3,7 @@ import sys
 import asyncio
 import traceback
 import logging
+import datetime
 from pathlib import Path
 
 import discord
@@ -10,10 +11,12 @@ from discord.ext import commands
 
 from constants import variables as var
 
+Path("./logs").mkdir(exist_ok=True)
+
 logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
 handler = logging.FileHandler(
-    filename='discord.log', encoding='utf-8', mode='w')
+    filename=f'logs/discord {datetime.datetime.today().strftime("%B %d, %Y")}.log', encoding='utf-8', mode='w')
 handler.setFormatter(logging.Formatter(
     '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)

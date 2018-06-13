@@ -49,11 +49,11 @@ class ErrorHandler:
 
         elif isinstance(error, commands.MissingPermissions):
             """Exception raised when the command invoker lacks permissions to run command."""
-            print(error)
+            await ctx.send(error)
 
         elif isinstance(error, commands.BotMissingPermissions):
             """Exception raised when the bot lacks permissions to run command."""
-            print(error)
+            await ctx.send(error)
 
         elif isinstance(error, commands.CommandOnCooldown):
             """Exception raised when the command being invoked is on cooldown."""

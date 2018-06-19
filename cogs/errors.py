@@ -1,3 +1,5 @@
+import traceback
+
 import discord
 from discord.ext import commands
 
@@ -11,21 +13,20 @@ class ErrorHandler:
         ctx   : Context
         error : Exception
         """
-        # This prevents any commands with local handlers being handled here in on_command_error.
         if hasattr(ctx.command, 'on_error'):
             return
 
         ignored = (commands.CommandNotFound, commands.UserInputError)
-
-        # Allows us to check for original exceptions raised and sent to CommandInvokeError.
-        # If nothing is found. We keep the exception passed to on_command_error.
         error = getattr(error, 'original', error)
 
-        # Anything in ignored will return and prevent anything happening.
         if isinstance(error, ignored):
             return
 
-        self.bot.logger.error(error)
+        self.bot.logger.error("".join(traceback.format_exception(
+            type(error), error, error.__traceback__)))
+
+        async for msg in ctx.channel.history(limit=5):
+            self.bot.logger.info(f"{msg.author}: {msg.content}")
 
         if isinstance(error, commands.MissingRequiredArgument):
             """Exception raised when parsing a command and a parameter 
@@ -57,7 +58,7 @@ class ErrorHandler:
 
         elif isinstance(error, commands.CommandOnCooldown):
             """Exception raised when the command being invoked is on cooldown."""
-            print(error)
+            await ctx.send(error)
 
         elif isinstance(error, commands.CheckFailure):
             """Exception raised when the predicates in Command.checks have failed."""

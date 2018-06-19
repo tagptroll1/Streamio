@@ -1,14 +1,51 @@
 import asyncio
+import datetime
 
 import discord
 from discord.ext import commands
 
 class Moderation:
+    """Commands that require administrator permissions"""
+
     def __init__(self, bot):
         self.bot = bot
 
     async def __local_check(self, ctx):
         return ctx.author.guild_permissions.administrator
+
+    @commands.command()
+    async def blacklist(self, ctx, channel:discord.TextChannel = None):
+        if channel is None:
+            channel = ctx.channel
+        self.bot.blacklist[str(channel.id)] = {
+            "guild": ctx.guild.id,
+            "creator": ctx.author.id,
+            "date": datetime.datetime.utcnow(),
+            "channel": channel.id
+        }
+
+        await self.bot.db.execute("""
+            INSERT INTO blacklist
+                (guild_id, channel_id, set_by, date_set)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (guild_id, channel_id)
+            DO NOTHING;
+        """, ctx.guild.id, channel.id, ctx.author.id, datetime.datetime.utcnow())
+
+        await ctx.send(f"The channel {channel.name} has been blacklisted! My commands and features wont work there now")
+
+    @commands.command()
+    async def remove_blacklist(self, ctx, channel: discord.TextChannel = None):
+        if channel is None:
+            channel = ctx.channel
+        self.bot.blacklist[str(channel.id)] = None
+
+        await self.bot.db.execute("""
+            DELETE FROM blacklist
+            WHERE guild_id = $1 AND channel_id = $2;
+        """, ctx.guild.id, channel.id)
+
+        await ctx.send(f"The channel {channel.name} has been unblocked! My commands and features will work there now")
 
     @commands.command()
     async def kick(self, ctx, tokick: discord.Member, *, reason=None):

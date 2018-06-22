@@ -1,17 +1,28 @@
+import json
 import asyncio
 import textwrap
-import json
+import datetime
 
 import discord
 from discord.ext import commands
+from Cryptodome.Cipher import AES
+from Cryptodome.Util import Padding
 
 from cogs.utils import db_queries as db_utils
+
 
 class Events:
     def __init__(self, bot):
         self.bot = bot
         self.current_stream = None
+        self.key = self.bot.secrets.ENCRYPT_KEY
+        self.aes = AES.new(self.key, AES.MODE_ECB)
         self.bad_words = self.load_bad_words()
+        self.money_cooldown = commands.CooldownMapping.from_cooldown(
+                            1.0, 60.0, commands.BucketType.user)
+        self.swear_cooldown = commands.CooldownMapping.from_cooldown(
+                            1.0, 15.0, commands.BucketType.user)
+
 
     def word_check(self, msg):
         return any(word in msg.lower() for word in self.bad_words)
@@ -19,6 +30,28 @@ class Events:
     def load_bad_words(self):
         with open("constants/badwords.json") as data:
             return json.load(data)
+
+    async def log_message(self, msg):
+        msg_cont = f"{msg.content}"
+        for attach in msg.attachments:
+            msg_cont += f" - {attach.url}"
+
+        if not msg_cont:
+            msg_cont = "<Attachement not saved>"
+        b_reason = Padding.pad(bytes(msg_cont, "utf-8"), 16)
+        encrypted_msg = self.aes.encrypt(b_reason)
+
+        date = datetime.datetime.utcnow()
+
+        self.bot.msg_log.append({
+            "id": msg.id,
+            "author": msg.author.id,
+            "channel": msg.channel.id,
+            "guild": msg.guild.id,
+            "msg": encrypted_msg,
+            "date": date
+        })
+        
 
     async def on_connect(self):
         pass
@@ -33,25 +66,36 @@ class Events:
         pass
 
     async def on_message(self, message):
-        if str(message.channel.id) in self.bot.blacklist:
+        if message.author.bot:
             return
             
-        if self.word_check(message.content):
-            take = await db_utils.take_money(self.bot, 1, message.author.id, message.guild.id)
-            
-            if not take:
-                await message.channel.send("Seems like you don't have $1 for the swearjar... I'll just delete the message")
-                await message.delete()
-                return
-            prefix = await self.bot.get_prefix(message)
-            embed = discord.Embed()
-            embed.colour = discord.Color.red()
-            embed.description = (
-                f"Please don't swear {message.author.display_name}!\n"
-                "$1 has been removed from your account and added to the swear jar!")
-            embed.set_footer(text=f"use {prefix[0]}swearjar to see how much is in the swearjar!")
-            await message.channel.send(embed=embed)
-            self.bot.swearjar += 1
+        await self.log_message(message)
+
+        bucket = self.money_cooldown.get_bucket(message)
+        retry_after = bucket.update_rate_limit()
+        if not retry_after:
+            await db_utils.give_money(self.bot, 1, message.author.id, message.guild.id)
+
+
+        if str(message.channel.id) in self.bot.blacklist:
+            return
+        
+        if str(message.channel.id) in self.bot.swearlist:
+            if self.word_check(message.content):
+                take = await db_utils.take_money(self.bot, 1, message.author.id, message.guild.id)
+                
+                if not take:
+                    await message.channel.send(
+                        discord.Embed(descritpion=
+                        "Seems like you don't have $1 for the swearjar... I'll just delete the message"))
+                    await message.delete()
+                    return
+                embed = discord.Embed()
+                embed.colour = discord.Color.red()
+                embed.description = (
+                    f"Please don't swear {message.author.display_name}!\n Took $1 off your account!")
+                await message.channel.send(embed=embed)
+                self.bot.swearjar += 1
         #await self.bot.process_commands(message)
 
     async def on_message_delete(self, message):
@@ -83,32 +127,7 @@ class Events:
 
     async def on_member_update(self, b, a):
         # Activity changed
-        if isinstance(a.activity, discord.Streaming):
-            if isinstance(b.activity, discord.Streaming):
-                # They were streaming, still streaming
-                pass
-            else:
-                # They were NOT streaming before
-                self.current_stream = a
-                title = f"{a.display_name} - {a.activity.name}"
-                stream_url = a.activity.url
-                stream_activity = discord.Streaming(
-                    name=title,
-                    url=stream_url
-                )
-                await self.bot.change_presence(activity=stream_activity)
-                if a.activity.twitch_name:
-                    await self.bot.db.execute("""
-                        UPDATE users
-                            SET twitch_name = $1
-                        WHERE guild_id = $2 AND id = $3
-                    """, a.activity.twitch_name, a.guild.id, a.id)
-        else:
-            if isinstance(b.activity, discord.Streaming):
-                # after is not streaming, before is
-                if a is self.current_stream:
-                    # Person who stopped was currently displayed
-                    await self.bot.change_presence()
+        pass
         
             
 

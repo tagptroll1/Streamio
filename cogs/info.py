@@ -4,11 +4,16 @@ from datetime import timedelta
 
 import discord
 from discord.ext import commands
+from PIL import Image
 
 class Info:
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.command()
+    @commands.cooldown(1, 15, commands.BucketType.user)
+    async def profile(self, ctx):
+        pass
     
     @commands.command(aliases=["invitelink", "invite", "link"])
     @commands.cooldown(1, 15, commands.BucketType.guild)

@@ -91,7 +91,7 @@ class Games:
 
 
     async def roulette(self, ctx, bet):
-        win = True if random.randint(0, 100) < 49 else False
+        win = True if random.randint(0, 100) < 50 else False
         if win:
             win_msg = f"""You win the 50/50! You won ${bet*2}"""
             await db_utils.give_money(self.bot, bet, ctx.author.id, ctx.guild.id)
@@ -175,7 +175,7 @@ class Games:
             await ctx.send("You can't bet with negative numbers..", delete_after = 10)
             return
 
-        author_win = True if random.randint(0, 1) else False
+        author_win = True if random.choice([0, 1]) else False
 
         if author_win:
             await ctx.send(

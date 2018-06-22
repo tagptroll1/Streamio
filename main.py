@@ -11,6 +11,7 @@ import discord
 from discord.ext import commands
 
 from constants import variables as var
+from cogs.utils import db_queries as db_utils
 
 Path("./logs").mkdir(exist_ok=True)
 
@@ -23,7 +24,7 @@ handler.setFormatter(logging.Formatter(
     '%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 
-class Streamio(commands.Bot):
+class Streamio(commands.AutoShardedBot):
     """The Bot Streamio created by Chibli
     
     Created with the usage of discord.py-rewrite by Rapptz
@@ -34,7 +35,7 @@ class Streamio(commands.Bot):
             description=kwargs.pop("description", ""),
             case_insenitive=True,
             activity=kwargs.pop("activity", None),
-            command_prefix=kwargs.pop("prefix", "!")
+            command_prefix=commands.when_mentioned_or(*kwargs.pop("prefix", ["!"]))
         )
         self.myloop = kwargs.pop("loop")
 
@@ -46,9 +47,11 @@ class Streamio(commands.Bot):
         self.start_time = None
         self.app_info = None
         self.blacklist = dict()
+        self.swearlist = dict()
+        self.secrets = var
+        self.msg_log = []
         self.loop.create_task(self.track_start())
         self.loop.create_task(self.load_all_extension())
-        self.secrets = var
         with open("swearjar.json") as data:
             self.swearjar = json.load(data)[0]
 
@@ -103,6 +106,8 @@ class Streamio(commands.Bot):
         """
         with open("swearjar.json", "w") as data:
             json.dump([self.swearjar], data)
+
+        await db_utils.dump_log(self)
 
         #with open("close_time.json")
         try:

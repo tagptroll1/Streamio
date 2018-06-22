@@ -26,6 +26,7 @@ class Database:
         await self.create_tables()
         await self.check_members_in_db()
         await self.load_blacklist()
+        await self.load_swearlist()
         await self.update_stuff()
         
     async def create_tables(self):
@@ -42,7 +43,7 @@ class Database:
                 twitch_name text,
                 primary key(id, guild_id)
                 );"""
-        )
+            )
 
         await self.bot.db.execute("""
             CREATE TABLE IF NOT EXISTS blacklist(
@@ -51,6 +52,26 @@ class Database:
                 set_by bigint,
                 date_set timestamp,
                 primary key(guild_id, channel_id));"""
+            )
+
+        await self.bot.db.execute("""
+            CREATE TABLE IF NOT EXISTS swearlist(
+                guild_id bigint NOT NULL,
+                channel_id bigint NOT NULL,
+                set_by bigint,
+                date_set timestamp,
+                primary key(guild_id, channel_id));"""
+            )
+
+        await self.bot.db.execute("""
+            CREATE TABLE IF NOT EXISTS messages(
+                msg_id bigint NOT NULL,
+                author_id bigint NOT NULL,
+                channel_id bigint,
+                guild_id bigint,
+                content bytea,
+                date timestamp,
+                primary key(msg_id, author_id));"""
             )
 
     async def check_members_in_db(self):
@@ -78,6 +99,23 @@ class Database:
             }
             self.bot.blacklist[str(row["channel_id"])] = info
 
+    async def load_swearlist(self):
+        try:
+            result = await self.bot.db.fetch("""
+                SELECT * FROM swearlist""")
+        except Exception as e:
+            print(e)
+            self.bot.logger.exception(e)
+
+        for row in result:
+            info = {
+                "guild": row["guild_id"],
+                "creator": row["set_by"],
+                "date": row["date_set"],
+                "channel": row["channel_id"]
+            }
+            self.bot.swearlist[str(row["channel_id"])] = info
+
     async def update_stuff(self):
         """Updates values every 5 minutes"""
         while True:
@@ -86,6 +124,7 @@ class Database:
                 await self.bot.db.execute("""
                 UPDATE users
                     SET money = money + 5;""")
+                await db_utils.dump_log(self.bot)
             except Exception as e:
                 self.bot.logger.error(e, exc_info=True)
             with open("swearjar.json", "w") as data:

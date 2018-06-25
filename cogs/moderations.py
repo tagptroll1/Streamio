@@ -8,6 +8,7 @@ from Cryptodome.Util import Padding
 
 from cogs.utils import db_queries as db_utils
 from cogs.utils.searchmodule import find_closest_records as close_str
+from cogs.utils.customconverter import ToDatetime
 
 class Moderation:
     """Commands that require administrator permissions"""
@@ -32,6 +33,41 @@ class Moderation:
                             "__content__ - attempt to search by content of msg\n\n"
                             "*__Please note you can only see logs from the same guild__*")
         ))
+
+
+    @getlog.command()
+    async def date(self, ctx, date:ToDatetime, limit:int = 10):
+        day_after = date + datetime.timedelta(days=1)
+        query = """
+            SELECT * FROM messages
+                WHERE date >= $1 AND date <= $2 AND guild_id = $3
+                ORDER BY date desc
+                LIMIT $4
+        """
+
+        rows = await db_utils.get_messages(
+            self.bot, ctx, query, date, day_after, ctx.guild.id, limit)
+
+        embed = discord.Embed(
+            title=f"{limit} last messages from {date.strftime('%d%m%y')}")
+        desc = ""
+        for msg in rows:
+            msg, author, channel, _, content, date = msg
+
+            if all(author, date, channel, content):
+                desc += f"{date}#{channel.name}{author.mention}: {content}\n"
+            elif all(date, channel, content):
+                desc += f"{date} #{channel.name}: {content}\n"
+            elif date and content:
+                desc += f"{date}: {content}\n"
+
+        embed.description = f"```{desc[:2000]}```"
+
+        if rows:
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send(embed=discord.Embed(description="No logs available"))
+
 
     @getlog.command()
     @commands.is_owner()
@@ -87,6 +123,7 @@ class Moderation:
             return
         await ctx.send(embed=discord.Embed(description="No logs available"))
 
+
     @getlog.command()
     async def author(self, ctx, member: discord.Member, limit: int=10):
         query = """
@@ -101,7 +138,7 @@ class Moderation:
             title=f"{limit} last messages from {member.display_name}")
         desc = ""
         for msg in rows:
-            msg, author, channel, guild, content, date = msg
+            msg, _, channel, _, content, date = msg
 
             if date and channel and content:
                 desc += f"{date} #{channel.name}: {content}\n" 
@@ -117,6 +154,7 @@ class Moderation:
             return
         await ctx.send(embed=discord.Embed(description="No logs available"))
         
+
     @getlog.command()
     async def channel(self, ctx, channel:discord.TextChannel, limit:int=10):
         query = """
@@ -131,7 +169,7 @@ class Moderation:
             title=f"{limit} last messages from {channel.name}")
         desc = ""
         for msg in rows:
-            msg, author, channel, guild, content, date = msg
+            msg, author, channel, _, content, date = msg
 
             if date and author and content:
                 desc += f"{date} {author.display_name}: {content}\n"
@@ -146,6 +184,7 @@ class Moderation:
             await ctx.send(embed=embed)
             return
         await ctx.send(embed=discord.Embed(description="No logs available"))
+
 
     @getlog.command()
     async def content(self, ctx, content, limit: int=10):
@@ -219,7 +258,7 @@ class Moderation:
             title=f"{limit} last messages from {ctx.guild.name}")
         desc = ""
         for msg in rows:
-            msg, author, channel, guild, content, date = msg
+            msg, author, channel, _, content, date = msg
 
             if date and channel and author and content:
                 desc += f"{date} #{channel.name} {author.display_name}: {content}\n"
@@ -420,6 +459,38 @@ class Moderation:
             await ctx.send(f"Something went wrong undeafening {toundeafen.display_name}")
             await ctx.send(f"```{e}```")
 
+    @commands.command(name="permissions")
+    async def edit_permissions(self, ctx, role:discord.Role, *, options):
+        copy = discord.Permissions(role.permissions.value)
+        d_get = {"none":discord.Permissions.none(),
+             "all":discord.Permissions.all(),
+             "all_channel":discord.Permissions.all_channel(),
+             "general":discord.Permissions.general(),
+             "text":discord.Permissions.text(),
+             "voice":discord.Permissions.voice()}.get(options.lower())
+
+        if d_get:
+            copy = d_get
+        else:
+            o_list = [value.split("=") for value in options.split()]
+            perm_values = dict()
+
+            for key, value in o_list.items():
+                if value.lower() == "true":
+                    perm_values[key] = True
+                elif value.lower() == "false":
+                    perm_values[key] = False
+                    
+            copy.update(**perm_values)
+        try:
+            await role.edit(permissions=copy)
+            embed = discord.Embed(description="Role's permissions edited")
+            embed.set_footer(text="Use the command 'info' to see them")
+            await ctx.send(embed=embed)
+        except Exception:
+            await ctx.send(embed=discord.Embed(
+                description="Something went wrong editing this role's permissions"))
+            print("sum-ting-wong")
 
 def setup(bot):
     bot.add_cog(Moderation(bot))

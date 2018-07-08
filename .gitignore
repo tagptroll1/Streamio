@@ -105,3 +105,4 @@ venv.bak/
 
 # my stuff
 constants/
+my_database.db

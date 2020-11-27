@@ -1,0 +1,37 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[packages]
+aiodns = "~=2.0"
+aiohttp = "~=3.5"
+"discord.py" = "~=1.5.0"
+pyyaml = "~=5.1"
+psutil = "~=5.7"
+pytz = "*"
+yarl = "~=1.5"
+pillow = "*"
+
+[dev-packages]
+coverage = "~=5.0"
+flake8 = "~=3.8"
+flake8-annotations = "~=2.0"
+flake8-bugbear = "~=20.1"
+flake8-docstrings = "~=1.4"
+flake8-import-order = "~=0.18"
+flake8-string-format = "~=0.2"
+flake8-tidy-imports = "~=4.0"
+flake8-todo = "~=0.7"
+pep8-naming = "~=0.9"
+pre-commit = "~=2.1"
+coveralls = "~=2.1"
+pylint = "*"
+autopep8 = "*"
+
+[requires]
+python_version = "3.8"
+
+[scripts]
+start = "python -m bot"
+lint = "pre-commit run --all-files"

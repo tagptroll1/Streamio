@@ -4,14 +4,14 @@ import inspect
 import datetime as dt
 
 import discord
-from discord.ext import commands
+from discord.ext.commands import command, guild_only, Cog
 
-class Utils:
+class Utils(Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
-    @commands.guild_only()
+    @command()
+    @guild_only()
     async def remind_me(self, ctx, time, *, message=None):
         """remind_me <time> [message]
         

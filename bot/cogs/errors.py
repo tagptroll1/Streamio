@@ -2,11 +2,13 @@ import traceback
 
 import discord
 from discord.ext import commands
+from discord.ext.commands import Cog
 
-class ErrorHandler:
+class ErrorHandler(Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @Cog.listener()
     async def on_command_error(self, ctx, error):
         """The event triggered when an error is raised while invoking a command.
 

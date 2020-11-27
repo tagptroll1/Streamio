@@ -2,15 +2,14 @@ import asyncio
 import datetime
 
 import discord
-from discord.ext import commands
+from discord.ext.commands import command, group, is_owner, Cog
 from Cryptodome.Cipher import AES
 from Cryptodome.Util import Padding
 
-from cogs.utils import db_queries as db_utils
-from cogs.utils.searchmodule import find_closest_records as close_str
-from cogs.utils.customconverter import ToDatetime
+from bot.cogs.utils.searchmodule import find_closest_records as close_str
+from bot.cogs.utils.customconverter import ToDatetime
 
-class Moderation:
+class Moderation(Cog):
     """Commands that require administrator permissions"""
 
     def __init__(self, bot):
@@ -21,17 +20,19 @@ class Moderation:
     async def __local_check(self, ctx):
         return ctx.author.guild_permissions.administrator
 
-    @commands.group(invoke_without_command=True)
+    @group(invoke_without_command=True)
     async def getlog(self, ctx):
         await ctx.send(embed=discord.Embed(
-            description = ("Parent command for fetching logs, please use following sub command:\n\n"
-                            "__time__ - Fetches by time starting at given, going back in time\n"
-                            "__date__ - fetches by date\n"
-                            "__author__ - fetches by author id\n"
-                            "__channel__ - fetches by channel id\n"
-                            "__guild__ - fetches by guild id\n"
-                            "__content__ - attempt to search by content of msg\n\n"
-                            "*__Please note you can only see logs from the same guild__*")
+            description = (
+                "Parent command for fetching logs, please use following sub command:\n\n"
+                "__time__ - Fetches by time starting at given, going back in time\n"
+                "__date__ - fetches by date\n"
+                "__author__ - fetches by author id\n"
+                "__channel__ - fetches by channel id\n"
+                "__guild__ - fetches by guild id\n"
+                "__content__ - attempt to search by content of msg\n\n"
+                "*__Please note you can only see logs from the same guild__*"
+            )
         ))
 
 
@@ -69,8 +70,8 @@ class Moderation:
             await ctx.send(embed=discord.Embed(description="No logs available"))
 
 
+    @is_owner()
     @getlog.command()
-    @commands.is_owner()
     async def secrets(self, ctx, limit=10, info=None):
         msg = None
         messages = await self.bot.db.fetch("""
@@ -277,7 +278,7 @@ class Moderation:
             return
         await ctx.send(embed=discord.Embed(description="No logs available"))
 
-    @commands.group(invoke_without_command=True)
+    @group(invoke_without_command=True)
     async def swearfilter(self, ctx):
         pass
 
@@ -318,7 +319,7 @@ class Moderation:
 
         await ctx.send(f"My swearing filter has been de-activated for #{channel.name}")
 
-    @commands.group(invoke_without_command=True)  # TODO add this
+    @group(invoke_without_command=True)  # TODO add this
     async def blacklist(self, ctx, limit=10):
         pass
 
@@ -360,7 +361,7 @@ class Moderation:
 
         await ctx.send(f"The channel {channel.name} has been unblocked! My commands and features will work there now")
 
-    @commands.command()
+    @command()
     async def kick(self, ctx, tokick: discord.Member, *, reason=None):
         """Kick a member from the guild
         
@@ -374,7 +375,7 @@ class Moderation:
             await ctx.send(f"Something went wrong kicking {tokick.display_name}")
             await ctx.send(f"```{e}```")
 
-    @commands.command()
+    @command()
     async def ban(self, ctx, toban: discord.Member, *, reason=None):
         """Bans a member from the guild, deletes 1 day old messages
         
@@ -388,7 +389,7 @@ class Moderation:
             await ctx.send(f"Something went wrong banning {toban.display_name}")
             await ctx.send(f"```{e}```")
 
-    @commands.command(name="nickname", aliases=["nick", "name", "username"])
+    @command(name="nickname", aliases=["nick", "name", "username"])
     async def edit_nickname(self, ctx, toedit: discord.Member, *, new_name):
         """Edits a member from the guilds nickname
         
@@ -403,7 +404,7 @@ class Moderation:
             await ctx.send(f"Something went wrong changing {toedit.display_name}s nickname")
             await ctx.send(f"```{e}```")
 
-    @commands.command(name="mute")
+    @command(name="mute")
     async def mute(self, ctx, tomute: discord.Member, *, reason=None):
         """Mutes a member from the guild
         
@@ -417,7 +418,7 @@ class Moderation:
             await ctx.send(f"Something went wrong muting {tomute.display_name}")
             await ctx.send(f"```{e}```")
 
-    @commands.command(name="unmute")
+    @command(name="unmute")
     async def unmute(self, ctx, tounmute: discord.Member, *, reason=None):
         """Unmutes a member from the guild
         
@@ -431,7 +432,7 @@ class Moderation:
             await ctx.send(f"Something went wrong unmuting {tounmute.display_name}")
             await ctx.send(f"```{e}```")
 
-    @commands.command(name="deafen")
+    @command(name="deafen")
     async def deafen(self, ctx, todeafen: discord.Member, *, reason=None):
         """Deafen a member from the guild
 
@@ -445,7 +446,7 @@ class Moderation:
             await ctx.send(f"Something went wrong deafening {todeafen.display_name}")
             await ctx.send(f"```{e}```")
 
-    @commands.command(name="undeafen")
+    @command(name="undeafen")
     async def undeafen(self, ctx, toundeafen: discord.Member, *, reason=None):
         """Undeafen a member from the guild
         
@@ -459,7 +460,7 @@ class Moderation:
             await ctx.send(f"Something went wrong undeafening {toundeafen.display_name}")
             await ctx.send(f"```{e}```")
 
-    @commands.command(name="permissions")
+    @command(name="permissions")
     async def edit_permissions(self, ctx, role:discord.Role, *, options):
         copy = discord.Permissions(role.permissions.value)
         d_get = {"none":discord.Permissions.none(),

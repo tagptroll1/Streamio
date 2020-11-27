@@ -1,7 +1,7 @@
 import discord
-from discord.ext import commands
+from discord.ext.commands import Cog
 
-class Voice:
+class Voice(Cog):
     def __init__(self, bot):
         self.bot = bot
 

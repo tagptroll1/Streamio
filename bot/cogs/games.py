@@ -3,11 +3,11 @@ import asyncio
 import textwrap
 
 import discord
-from discord.ext import commands
+from discord.ext.commands import command, cooldown, group, BucketType, Cog
 
-from cogs.utils import db_queries as db_utils
+from bot.cogs.utils import db_queries as db_utils
 
-class Games:
+class Games(Cog):
 
     response_form = {
         "choose": "I choose",
@@ -38,33 +38,33 @@ class Games:
         return True
 
 
-    @commands.command()
+    @command()
     async def test(self, ctx, cont):
         try:
             await ctx.send(self.bot.__dict__.get(cont))
         except Exception as e:
             await ctx.send(f"```{e}```") 
 
-    @commands.command(aliases=["roll", "rolldice"])
+    @command(aliases=["roll", "rolldice"])
     async def dice(self, ctx, max:int=6):
         await ctx.send(f"Dice says.. {random.randint(0, max)}") 
 
-    @commands.group(name="choose", aliases=["choice", "select", "pick"])
+    @group(name="choose", aliases=["choice", "select", "pick"])
     async def choose_random(self, ctx, *options):
         ctx.response_form = Games.response_form.get(ctx.invoked_with)
         await ctx.send(f"{ctx.response_form}.. {random.choice(options)}!")
             
-    @commands.command(aliases=["chooseuser", "chooseperson", "chooseguy"])
+    @command(aliases=["chooseuser", "chooseperson", "chooseguy"])
     async def choose_member(self, ctx):
         online = [x for x in ctx.channel.members if x.status != discord.Status.offline]
         await ctx.send(f"I chose.. {random.choice(online).display_name}")
 
-    @commands.command(aliases=["role", "fromrole"])
+    @command(aliases=["role", "fromrole"])
     async def member_from(self, ctx, role:discord.Role):
         await ctx.send(f"I chose.. {random.choice(role.members).display_name}")
 
-    @commands.command()
-    @commands.cooldown(1, 1, commands.BucketType.channel)
+    @command()
+    @cooldown(1, 1, BucketType.channel)
     async def guessdice(self, ctx, guess:int, bet:int):
         if not await self.bet_check(bet, ctx):
             return
@@ -101,16 +101,16 @@ class Games:
             await db_utils.take_money(self.bot, bet, ctx.author.id, ctx.guild.id)
             await ctx.send(lose_msg)
 
-    @commands.group(name="rng", aliases=["50/50", "5050", "50", "roulette"],
+    @group(name="rng", aliases=["50/50", "5050", "50", "roulette"],
                     invoke_without_command=True)
-    @commands.cooldown(1, 1, commands.BucketType.channel)
+    @cooldown(1, 1, BucketType.channel)
     async def rng_50_50_game(self,ctx, bet:int):
         if await self.bet_check(bet, ctx):
             await self.roulette(ctx, bet)
         
 
     @rng_50_50_game.command(name="all")
-    @commands.cooldown(1, 1, commands.BucketType.channel)
+    @cooldown(1, 1, BucketType.channel)
     async def roulette_all(self, ctx):
         money, = await self.bot.db.fetchrow("""
             SELECT money FROM users
@@ -121,8 +121,8 @@ class Games:
             await self.roulette(ctx, money)
 
 
-    @commands.command(name="duel")
-    @commands.cooldown(1, 1, commands.BucketType.channel)
+    @command(name="duel")
+    @cooldown(1, 1, BucketType.channel)
     async def duel_someone(self, ctx, other:discord.Member, bet:int):
         if other is ctx.author or other.bot:
             await ctx.send("You can't duel this person!")
@@ -203,10 +203,8 @@ class Games:
         if msg.content in ("lol", "rekt", "ez") and msg.author == winner:
             await ctx.send("Toxic behavior detected! I'll take half of your winnings!")
             await db_utils.take_money(self.bot, bet/2, winner.id, ctx.guild.id)
-        
 
-
-    @commands.command(aliases=["fibo"])
+    @command(aliases=["fibo"])
     async def fibonacci(self, ctx, cycles:int):
         if cycles > 15000 or cycles < 1:
             await ctx.send("Too big/small number!")

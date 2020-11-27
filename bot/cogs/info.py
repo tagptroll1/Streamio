@@ -3,20 +3,20 @@ from datetime import datetime
 from datetime import timedelta
 
 import discord
-from discord.ext import commands
+from discord.ext.commands import command, cooldown, group, guild_only, BucketType, Cog
 from PIL import Image
 
-class Info:
+class Info(Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command()
-    @commands.cooldown(1, 15, commands.BucketType.user)
+    @command()
+    @cooldown(1, 15, BucketType.user)
     async def profile(self, ctx):
         pass
     
-    @commands.command(aliases=["invitelink", "invite", "link"])
-    @commands.cooldown(1, 15, commands.BucketType.guild)
+    @command(aliases=["invitelink", "invite", "link"])
+    @cooldown(1, 15, BucketType.guild)
     async def invite_link(self, ctx):
         link = self.bot.invite_link
         embed = discord.Embed(title="Invite me!", url=link)
@@ -24,7 +24,7 @@ class Info:
         embed.set_thumbnail(url=self.bot.user.avatar_url)
         await ctx.send(embed=embed)
 
-    @commands.group(invoke_without_command=True)
+    @group(invoke_without_command=True)
     async def info(self, ctx):
         guild = ctx.guild
         owner = self.bot.app_info.owner
@@ -105,7 +105,7 @@ class Info:
         )
         await ctx.send(embed=embed)
 
-    @commands.guild_only()
+    @guild_only()
     @info.command()
     async def role(self, ctx, role:discord.Role):
         created = datetime.strftime(role.created_at, "%d.%m.%Y")
@@ -134,8 +134,8 @@ class Info:
         embed.add_field(name="Permissions", value="\n".join(perms))
         await ctx.send(embed=embed)
 
-    @commands.guild_only()
-    @commands.command()
+    @guild_only()
+    @command()
     async def guilds(self, ctx):
         embed = discord.Embed(title="All my guilds")
         guilds = [f"{guild.name}, members: {len(guild.members)}" for guild in self.bot.guilds]

@@ -1,15 +1,15 @@
 import discord
-from discord.ext import commands
+from discord.ext.commands import command, is_owner, has_permissions, Cog
 
-class Twitch:
+class Twitch(Cog):
     def __init__(self, bot):
         self.bot = bot
 
     async def __local_check(self, ctx):
         return str(ctx.channel.id) not in self.bot.blacklist
 
-    @commands.is_owner()
-    @commands.command()
+    @is_owner()
+    @command()
     async def setstream(self, ctx, user:discord.Member):
         if isinstance(user.activity, discord.Streaming):
             title = f"{user.display_name} - {user.activity.name}"
@@ -23,8 +23,8 @@ class Twitch:
             return
         await ctx.send(f"{user.display_name} is not streaming..")
 
-    @commands.command()
-    @commands.has_permissions(administrator=True)
+    @command()
+    @has_permissions(administrator=True)
     async def shoutout(self, ctx, user:discord.Member):
         
         twitch_name, = await self.bot.db.fetchrow("""
@@ -46,7 +46,7 @@ class Twitch:
         await ctx.send( "I couldn't find a stream connected to this member!\n"
                        f"You can add a stream to my database by using {ctx.prefix}addstream @member twitchurl" )
 
-    @commands.command()
+    @command()
     async def addstream(self, ctx, member:discord.Member, url):
         twitch_name = url.replace("https://www.twitch.tv/", "")
         twitch_name = twitch_name.replace("www.twitch.tv/", "")

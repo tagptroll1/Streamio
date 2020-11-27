@@ -1,9 +1,9 @@
 import asyncio
 
 import discord
-from discord.ext import commands
+from discord.ext.commands import command, Cog
 
-class Owner:
+class Owner(Cog):
     """Owner of bot only commands"""
 
     def __init__(self, bot):
@@ -12,7 +12,7 @@ class Owner:
     async def __local_check(self, ctx):
         return await self.bot.is_owner(ctx.author)
 
-    @commands.command(name="loadcog", aliases=["load"])
+    @command(name="loadcog", aliases=["load"])
     async def load_cog(self, ctx, cog):
         if not "cogs." in cog:
             cog = "cogs." + cog
@@ -23,7 +23,7 @@ class Owner:
             await ctx.send(f"Something went wrong loading {cog}!")
             await ctx.send(f"```{e}```")
 
-    @commands.command(name="unloadcog", aliases=["unload"])
+    @command(name="unloadcog", aliases=["unload"])
     async def unload_cog(self, ctx, cog):
         if not "cogs." in cog:
             cog = "cogs." + cog
@@ -34,11 +34,11 @@ class Owner:
             await ctx.send(f"Something went wrong unloading {cog}!")
             await ctx.send(f"```{e}```")
 
-    @commands.command(name="cogs")
+    @command(name="cogs")
     async def get_cogs(self, ctx):
         await ctx.send(", ".join(list(self.bot.cogs)))
 
-    @commands.command()
+    @command()
     async def shutdown(self, ctx):
         await ctx.send("Bye :(")
         self.bot.logger.info("Bot was shutdown by command shutdown")
